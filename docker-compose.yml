@@ -1,0 +1,46 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: kushvinth/zell:latest-backend
+    restart: unless-stopped
+    environment:
+      ZELL_DB_PATH: /app/data/agents.db
+      ZELL_AGENTS_DATA_DIR: /app/agents_data
+      LLM_PROVIDER: ollama
+      LLM_BASE_URL: http://host.docker.internal:11434
+      LLM_MODEL: qwen2.5:0.5b
+      CORS_ORIGINS: >
+        http://localhost:${FRONTEND_PORT:-3000},
+        http://127.0.0.1:${FRONTEND_PORT:-3000},
+        http://localhost:5173,
+        http://127.0.0.1:5173
+    volumes:
+      - backend_data:/app/data
+      - backend_agents_data:/app/agents_data
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    networks:
+      - zell-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: kushvinth/zell:latest-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    networks:
+      - zell-network
+
+volumes:
+  backend_data:
+  backend_agents_data:
+
+networks:
+  zell-network:
+    driver: bridge
